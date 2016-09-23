@@ -438,4 +438,67 @@ function mergeSort(arr) {
   return merge(mergeSort(arr.slice(0, middle)), mergeSort(arr.slice(middle)));
 }
 
-console.log(mergeSort([5, 1, 7, 3, 9, 0, 2, 1]));
+// console.log(mergeSort([5, 1, 7, 3, 9, 0, 2, 1]));
+
+function wordSearch(arr, word) {
+  if (!arr.length) {
+    return null;
+  }
+  let mid = Math.floor(arr.length/2);
+  let i = 0;
+  while (true) {
+    if (arr[mid] === word) {
+      return mid;
+    } else if (mid === arr.length) {
+      mid = 0;
+    } else if (!mid.length) {
+      mid++;
+    } else if (arr[mid] > word) {
+      return wordSearch(arr.slice(0, mid), word);
+    } else {
+      return mid + 1 + wordSearch(arr.slice(mid + 1), mid);
+    }
+  }
+}
+
+// console.log(wordSearch(["a", "b", "", "", "", "", "c", "", "d"], 'd'));
+
+
+function setBit(x, position) {
+  let mask = 1 << position;
+  return (x | mask);
+}
+console.log(setBit(8, 1));
+
+function clearBit(x, pos) {
+  mask = 1 << pos;
+  return (x & ~mask);
+}
+
+//state will be zero or one
+function setBit(x, pos, state) {
+  mask = 1 << pos;
+  return (x & ~mask) | (-state & mask);
+}
+
+function permutations(arr) {
+  let res = [],
+      building = [];
+  function permute(arr) {
+    for (let i = 0; i < arr.length; i++) {
+      let front = arr.splice(i, 1)[0];
+      building.push(front);
+      if (arr.length === 0) {
+        res.push(building.slice());
+      }
+      permute(arr);
+      arr.splice(i, 0, front);
+      building.pop()
+    }
+    return res;
+  }
+  return permute(arr);
+}
+
+console.log(permutations([1, 2, 3, 4]));
+console.log(permutations([2, 3, 4]));
