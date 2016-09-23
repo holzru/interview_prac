@@ -502,3 +502,4 @@ function permutations(arr) {
 
 console.log(permutations([1, 2, 3, 4]));
 console.log(permutations([2, 3, 4]));
+console.log(permutations([2, 4]));
