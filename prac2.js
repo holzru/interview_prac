@@ -504,3 +504,5 @@ console.log(permutations([1, 2, 3, 4]));
 console.log(permutations([2, 3, 4]));
 console.log(permutations([2, 4]));
 console.log(permutations([]));
+console.log(permutations([2, 4, 6]));
+console.log(permutations([1, 1, 1, 1, 0, 1]));
