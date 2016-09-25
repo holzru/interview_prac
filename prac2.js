@@ -468,7 +468,7 @@ function setBit(x, position) {
   let mask = 1 << position;
   return (x | mask);
 }
-console.log(setBit(8, 1));
+// console.log(setBit(8, 1));
 
 function clearBit(x, pos) {
   mask = 1 << pos;
@@ -500,9 +500,42 @@ function permutations(arr) {
   return permute(arr);
 }
 
-console.log(permutations([1, 2, 3, 4]));
-console.log(permutations([2, 3, 4]));
-console.log(permutations([2, 4]));
-console.log(permutations([]));
-console.log(permutations([2, 4, 6]));
-console.log(permutations([1, 1, 1, 1, 0, 1]));
+// console.log(permutations([1, 2, 3, 4]));
+// console.log(permutations([2, 3, 4]));
+// console.log(permutations([2, 4]));
+// console.log(permutations([]));
+// console.log(permutations([2, 4, 6]));
+// console.log(permutations([1, 1, 1, 1, 0, 1]));
+
+
+function primeFacs(k) {
+  let min = 1,
+      q3 = [3],
+      q5 = [5],
+      q7 = [7];
+
+  for (let i = k; i > 0; i--) {
+    min = Math.min(q3[0], q5[0], q7[0]);
+    if (min === q7[0]) {
+      q7.shift();
+    } else {
+      if (q5[0] === min) {
+        q5.shift();
+      } else {
+        q3.shift();
+        q3.push(3 * min);
+      }
+      q5.push(min * 5);
+    }
+    q7.push(min * 7);
+  }
+  return min;
+}
+
+function satisfyTravis(k) {
+  for (let i = 0; i < k; i++) {
+    console.log(primeFacs(i));
+  }
+}
+
+// satisfyTravis(100);
