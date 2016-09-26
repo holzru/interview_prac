@@ -540,3 +540,26 @@ function satisfyTravis(k) {
 
 // satisfyTravis(100);
 // satisfyTravis(150);
+
+function textMatch(root1, root2) {
+  let toCheck1 = [root1],
+      toCheck2 = [root2],
+      res1 = "",
+      res2 = "";
+  while (toCheck2.length || toCheck1.length) {
+    let el1 = (toCheck1.length ? toCheck1.shift() : null),
+        el2 = (toCheck2.length ? toCheck2.shift() : null);
+
+    if (el1 && el1.value) {res1 += e11.value;}
+    if (el2 && el2.value) {res2 += el2.value;}
+    if (!stringMatch(res1, res2)) {return false;}
+    if (el1 && el1.children) {toCheck1 = el1.children.concat(toCheck1);}
+    if (el2 && el2.children) {toCheck2 = el2.children.concat(toCheck2);}
+  }
+  return res1 === res2;
+}
+
+function stringMatch(str1, str2) {
+  let len = Math.min(str1.length, str2.length);
+  return (str1.slice(0, len) === str2.slice(0, len));
+}
