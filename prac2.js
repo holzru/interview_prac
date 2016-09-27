@@ -563,3 +563,52 @@ function stringMatch(str1, str2) {
   let len = Math.min(str1.length, str2.length);
   return (str1.slice(0, len) === str2.slice(0, len));
 }
+
+
+class SimplePromise{
+  constructor(executor){
+    this.state = "PENDING";
+    executor(this.resolve.bind(this), this.reject.bind(this));
+    return this;
+  }
+
+  resolve(resp){
+    this.state = "FULFILLED";
+    this.successAction(resp);
+  }
+
+  reject(error){
+    this.state = "REJECTED";
+    this.errorAction(error);
+  }
+
+  then(successAction, errorAction){
+      this.successAction = successAction;
+      this.errorAction = errorAction;
+  }
+}
+
+const throwDice = function(resolve, reject) {
+  setTimeout(
+    function(){
+      let [d1, d2] = [~~(1 + Math.random() * 6), ~~(1 + Math.random() * 6)];
+      if((d1 + d2) === 7 || (d1 + d2) === 11){resolve(d1 + d2);}
+      else{reject(d1 + d2);}
+    }, 500);
+};
+
+const success = (value) => {
+  console.log('Second')
+  console.log(value);
+  console.log('YOU WIN!!');
+};
+
+const failure = (value) => {
+  console.log('Second')
+  console.log(value);
+  console.log('YOU LOSE!!');
+};
+
+new SimplePromise(throwDice).then(success, failure);
+
+console.log('First');
