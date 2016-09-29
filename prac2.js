@@ -565,28 +565,84 @@ function stringMatch(str1, str2) {
 }
 
 
-class SimplePromise{
-  constructor(executor){
-    this.state = "PENDING";
+class Promise {
+  constructor(executor) {
+    this.state = 'PENDING';
     executor(this.resolve.bind(this), this.reject.bind(this));
-    return this;
+    this.successCBs = [];
+    this.failureCBs = [];
   }
-
-  resolve(resp){
-    this.state = "FULFILLED";
-    this.successAction(resp);
+  resolve(resp) {
+    if (this.state === "PENDING") {
+      this.state = "RESOLVED";
+      this.successCBs.forEach((cb) => {
+        cb(this.val);
+      });
+      this.successCBs = null;
+    }
   }
-
-  reject(error){
-    this.state = "REJECTED";
-    this.errorAction(error);
+  reject(error) {
+    if (this.state === "PENDING") {
+      this.state = "REJECTED";
+      this.error = error;
+      this.failureCBs.forEach((cb) => {
+        cb(this.error);
+      });
+      this.failureCBs = null;
+    }
   }
-
-  then(successAction, errorAction){
-      this.successAction = successAction;
-      this.errorAction = errorAction;
+  then(onSuccess, onFailure) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      if (self.state === "PENDING") {
+        self.successCBs.push(function(val) {
+          let el = (onSuccess ? onSuccess(val) : val);
+          if (el instanceof Promise) {
+            return el.then(function(val) {
+              resolve(val);
+            });
+          } else {
+            return resolve(el);
+          }
+        });
+        self.failureCBs.push(function(val) {
+          let el = (onFailure ? onFailure(val) : val);
+          if (el instanceof Promise) {
+            return el.then(function(val) {
+              reject(val);
+            });
+          } else {
+            return reject(el);
+          }
+        });
+      } else if (this.state === "RESOLVED") {
+        return new Promise(function(resolve, reject) {
+          let temp = onSuccess(this.val);
+          if (temp instanceof Promise) {
+            let ans = temp.then(function(val) {
+              resolve(val);
+            });
+          } else {
+            resolve(temp)
+          }
+        });
+      } else {
+        return new Promise(function(resolve, reject) {
+          let temp = onFailure(this.val);
+          if (temp instanceof Promise) {
+            let ans = temp.then(function(val) {
+              reject(val);
+            });
+          } else {
+            reject(temp)
+          }
+        });
+      }
+    });
   }
 }
+
+
 
 const throwDice = function(resolve, reject) {
   setTimeout(
@@ -594,7 +650,7 @@ const throwDice = function(resolve, reject) {
       let [d1, d2] = [~~(1 + Math.random() * 6), ~~(1 + Math.random() * 6)];
       if((d1 + d2) === 7 || (d1 + d2) === 11){resolve(d1 + d2);}
       else{reject(d1 + d2);}
-    }, 500);
+    }, 100);
 };
 
 const success = (value) => {
@@ -609,6 +665,48 @@ const failure = (value) => {
   console.log('YOU LOSE!!');
 };
 
-new SimplePromise(throwDice).then(success, failure);
+const rethrow = (value) => {
+  console.log(`threw a ${value} throwing again`);
+  return test();
+};
 
 console.log('First');
+
+function test() {
+  return new Promise(throwDice).then(success, rethrow).then(success, rethrow).then(success, failure);
+}
+test();
+
+
+function dieToss() {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+function tossASix() {
+  return new RSVP.Promise(function(fulfill, reject) {
+    var n = Math.floor(Math.random() * 6) + 1;
+    if (n === 6) {
+      fulfill(n);
+    } else {
+      reject(n);
+    }
+  });
+}
+
+function logAndTossAgain(toss) {
+  console.log("Tossed a " + toss + ", need to try again.");
+  return tossASix();
+}
+
+function logSuccess(toss) {
+  console.log("Yay, managed to toss a " + toss + ".");
+}
+
+function logFailure(toss) {
+  console.log("Tossed a " + toss + ". Too bad, couldn't roll a six");
+}
+
+tossASix()
+  .then(null, logAndTossAgain)   //Roll first time
+  .then(null, logAndTossAgain)   //Roll second time
+  .then(logSuccess, logFailure); //Roll third and last time
