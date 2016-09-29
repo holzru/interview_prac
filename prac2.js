@@ -1,3 +1,5 @@
+const RSVP = require('rsvp');
+
 function permutations(arr) {
   if (!arr.length) {
     return [[]];
@@ -575,6 +577,7 @@ class Promise {
   resolve(resp) {
     if (this.state === "PENDING") {
       this.state = "RESOLVED";
+      this.val = resp;
       this.successCBs.forEach((cb) => {
         cb(this.val);
       });
@@ -597,52 +600,134 @@ class Promise {
       if (self.state === "PENDING") {
         self.successCBs.push(function(val) {
           let el = (onSuccess ? onSuccess(val) : val);
+
           if (el instanceof Promise) {
-            return el.then(function(val) {
-              resolve(val);
+            el.then(function(newVal) {
+              resolve(newVal);
             });
           } else {
-            return resolve(el);
+            resolve(el);
           }
         });
         self.failureCBs.push(function(val) {
+
           let el = (onFailure ? onFailure(val) : val);
           if (el instanceof Promise) {
-            return el.then(function(val) {
-              reject(val);
+            el.then(null, function(newVal) {
+              reject(newVal);
             });
           } else {
             return reject(el);
           }
         });
       } else if (this.state === "RESOLVED") {
-        return new Promise(function(resolve, reject) {
-          let temp = onSuccess(this.val);
-          if (temp instanceof Promise) {
-            let ans = temp.then(function(val) {
-              resolve(val);
-            });
-          } else {
-            resolve(temp)
-          }
-        });
+        let temp = onSuccess(self.val);
+        if (temp instanceof Promise) {
+          let ans = temp.then(function(val) {
+            resolve(val);
+          });
+        } else {
+          resolve(temp)
+        }
       } else {
-        return new Promise(function(resolve, reject) {
-          let temp = onFailure(this.val);
-          if (temp instanceof Promise) {
-            let ans = temp.then(function(val) {
-              reject(val);
-            });
-          } else {
-            reject(temp)
-          }
-        });
+        let temp = onFailure(self.error);
+        if (temp instanceof Promise) {
+          let ans = temp.then(function(val) {
+            reject(val);
+          });
+        } else {
+          reject(temp)
+        }
       }
     });
   }
 }
 
 
+// class Promise {
+//   constructor (exec) {
+//     this.state = 'pending';
+//     this.resolveCbs = [];
+//     this.rejectCbs = [];
+//     exec(this.resolve.bind(this), this.reject.bind(this));
+//   }
+//   then (resolveCb, rejectCb) {
+//     const self = this;
+//     return new Promise(function (resolve, reject) {
+//       if (self.state === 'pending') {
+//         self.resolveCbs.push(function (value) {
+//           self.resolveWithCbAndValue(resolve, resolveCb, value);
+//         });
+//         self.rejectCbs.push(function (value) {
+//           self.rejectWithCbAndValue(reject, rejectCb, value);
+//         });
+//       } else if (self.state === 'resolved') {
+//         self.resolveWithCbAndValue(resolve, resolveCb, self.value);
+//       } else {
+//         self.rejectWithCbAndValue(reject, rejectCb, self.value);
+//       }
+//     });
+//   }
+//   catch (rejectCb) {
+//     const self = this;
+//     return new Promise(function (resolve, reject) {
+//       if (self.state === 'pending') {
+//         self.resolveCbs.push(resolve);
+//         self.rejectCbs.push(function (value) {
+//           self.rejectWithCbAndValue(reject, rejectCb, value);
+//         });
+//       } else if (self.state === 'resolved') {
+//         resolve(self.value);
+//       } else {
+//         self.rejectWithCbAndValue(reject, rejectCb, self.value);
+//       }
+//     });
+//   }
+//   resolve (value) {
+//     this.value = value;
+//     this.state = 'resolved';
+//
+//     // invoke all callbacks
+//     this.resolveCbs.forEach(cb => cb(this.value));
+//     this.resolveCbs = [];
+//     this.rejectCbs = [];
+//   }
+//   reject (value) {
+//     this.value = value;
+//     this.state = 'rejected';
+//
+//     // invoke all callbacks
+//     this.rejectCbs.forEach(cb => cb(this.value));
+//     this.resolveCbs = [];
+//     this.rejectCbs = [];
+//   }
+//   resolveWithCbAndValue (resolve, cb, value) {
+//     // invoke cb if there is one
+//     const result = cb ? cb(value) : value;
+//
+//     // resolve to result or Promise's resolved value
+//     if (result instanceof Promise) {
+//       result.then(function (newValue) {
+//         resolve(newValue);
+//       });
+//     } else {
+//       resolve(result);
+//     }
+//   }
+//   rejectWithCbAndValue (reject, cb, value) {
+//     // invoke cb if there is one
+//     const result = cb ? cb(value) : value;
+//
+//     // reject to result or Promise's rejected value
+//     if (result instanceof Promise) {
+//       result.then(null, function (newValue) {
+//         reject(newValue);
+//       });
+//     } else {
+//       reject(result);
+//     }
+//   }
+// }
 
 const throwDice = function(resolve, reject) {
   setTimeout(
@@ -667,35 +752,62 @@ const failure = (value) => {
 
 const rethrow = (value) => {
   console.log(`threw a ${value} throwing again`);
-  return test();
+  return duck();
 };
 
-console.log('First');
+// console.log('First');
+// function duck() {
+//   new Promise(throwDice).then(success, rethrow).then(success, failure);
+// };
+// duck();
 
-function test() {
-  return new Promise(throwDice).then(success, rethrow).then(success, rethrow).then(success, failure);
-}
-test();
 
+// function dieToss() {
+//   return Math.floor(Math.random() * 6) + 1;
+// }
+//
+// function tossASix() {
+//   return new RSVP.Promise(function(fulfill, reject) {
+//     var n = Math.floor(Math.random() * 6) + 1;
+//     if (n === 6) {
+//       fulfill(n);
+//     } else {
+//       reject(n);
+//     }
+//   });
+// }
+//
+// function logAndTossAgain(toss) {
+//   console.log("Tossed a " + toss + ", need to try again.");
+//   return tossASix();
+// }
+//
+// function logSuccess(toss) {
+//   console.log("Yay, managed to toss a " + toss + ".");
+// }
+//
+// function logFailure(toss) {
+//   console.log("Tossed a " + toss + ". Too bad, couldn't roll a six");
+// }
+//
+// tossASix()
+//   .then(null, logAndTossAgain)   //Roll first time
+//   .then(null, logAndTossAgain)   //Roll second time
+//   .then(logSuccess, logFailure); //Roll third and last time
 
-function dieToss() {
-  return Math.floor(Math.random() * 6) + 1;
-}
-
-function tossASix() {
+function whatever() {
   return new RSVP.Promise(function(fulfill, reject) {
     var n = Math.floor(Math.random() * 6) + 1;
-    if (n === 6) {
-      fulfill(n);
-    } else {
-      reject(n);
-    }
-  });
+      if (n === 6) {
+        fulfill(n);
+      } else {
+        reject(n);
+      }
+  })
 }
-
 function logAndTossAgain(toss) {
   console.log("Tossed a " + toss + ", need to try again.");
-  return tossASix();
+  return whatever();
 }
 
 function logSuccess(toss) {
@@ -706,7 +818,7 @@ function logFailure(toss) {
   console.log("Tossed a " + toss + ". Too bad, couldn't roll a six");
 }
 
-tossASix()
+whatever()
   .then(null, logAndTossAgain)   //Roll first time
   .then(null, logAndTossAgain)   //Roll second time
   .then(logSuccess, logFailure); //Roll third and last time
