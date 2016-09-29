@@ -567,247 +567,189 @@ function stringMatch(str1, str2) {
 }
 
 
+// class Promise {
+//   constructor(executor) {
+//     this.state = 'PENDING';
+//     executor(this.resolve.bind(this), this.reject.bind(this));
+//     this.successCBs = [];
+//     this.failureCBs = [];
+//   }
+//   resolve(resp) {
+//     if (this.state === "PENDING") {
+//       this.state = "RESOLVED";
+//       this.val = resp;
+//       this.successCBs.forEach((cb) => {
+//         cb(this.val);
+//       });
+//       this.successCBs = null;
+//     }
+//   }
+//   reject(error) {
+//     if (this.state === "PENDING") {
+//       this.state = "REJECTED";
+//       this.error = error;
+//       this.failureCBs.forEach((cb) => {
+//         cb(this.error);
+//       });
+//       this.failureCBs = null;
+//     }
+//   }
+//   then(onSuccess, onFailure) {
+//     let self = this;
+//     return new Promise(function(resolve, reject) {
+//       if (self.state === "PENDING") {
+//         self.successCBs.push(function(val) {
+//           let el = (onSuccess ? onSuccess(val) : val);
+//
+//           if (el instanceof Promise) {
+//             el.then(function(newVal) {
+//               resolve(newVal);
+//             });
+//           } else {
+//             resolve(el);
+//           }
+//         });
+//         self.failureCBs.push(function(val) {
+//
+//           let el = (onFailure ? onFailure(val) : val);
+//           if (el instanceof Promise) {
+//             el.then(null, function(newVal) {
+//               reject(newVal);
+//             });
+//           } else {
+//             return reject(el);
+//           }
+//         });
+//       } else if (this.state === "RESOLVED") {
+//         let temp = onSuccess(self.val);
+//         if (temp instanceof Promise) {
+//           let ans = temp.then(function(val) {
+//             resolve(val);
+//           });
+//         } else {
+//           resolve(temp)
+//         }
+//       } else {
+//         let temp = onFailure(self.error);
+//         if (temp instanceof Promise) {
+//           let ans = temp.then(function(val) {
+//             reject(val);
+//           });
+//         } else {
+//           reject(temp)
+//         }
+//       }
+//     });
+//   }
+// }
+
+
 class Promise {
-  constructor(executor) {
-    this.state = 'PENDING';
-    executor(this.resolve.bind(this), this.reject.bind(this));
-    this.successCBs = [];
-    this.failureCBs = [];
+  constructor (exec) {
+    this.state = 'pending';
+    this.resolveCbs = [];
+    this.rejectCbs = [];
+    exec(this.resolve.bind(this), this.reject.bind(this));
   }
-  resolve(resp) {
-    if (this.state === "PENDING") {
-      this.state = "RESOLVED";
-      this.val = resp;
-      this.successCBs.forEach((cb) => {
-        cb(this.val);
-      });
-      this.successCBs = null;
-    }
-  }
-  reject(error) {
-    if (this.state === "PENDING") {
-      this.state = "REJECTED";
-      this.error = error;
-      this.failureCBs.forEach((cb) => {
-        cb(this.error);
-      });
-      this.failureCBs = null;
-    }
-  }
-  then(onSuccess, onFailure) {
-    let self = this;
-    return new Promise(function(resolve, reject) {
-      if (self.state === "PENDING") {
-        self.successCBs.push(function(val) {
-          let el = (onSuccess ? onSuccess(val) : val);
-
-          if (el instanceof Promise) {
-            el.then(function(newVal) {
-              resolve(newVal);
-            });
-          } else {
-            resolve(el);
-          }
+  then (resolveCb, rejectCb) {
+    const self = this;
+    return new Promise(function (resolve, reject) {
+      if (self.state === 'pending') {
+        self.resolveCbs.push(function (value) {
+          self.resolveWithCbAndValue(resolve, resolveCb, value);
         });
-        self.failureCBs.push(function(val) {
-
-          let el = (onFailure ? onFailure(val) : val);
-          if (el instanceof Promise) {
-            el.then(null, function(newVal) {
-              reject(newVal);
-            });
-          } else {
-            return reject(el);
-          }
+        self.rejectCbs.push(function (value) {
+          self.rejectWithCbAndValue(reject, rejectCb, value);
         });
-      } else if (this.state === "RESOLVED") {
-        let temp = onSuccess(self.val);
-        if (temp instanceof Promise) {
-          let ans = temp.then(function(val) {
-            resolve(val);
-          });
-        } else {
-          resolve(temp)
-        }
+      } else if (self.state === 'resolved') {
+        self.resolveWithCbAndValue(resolve, resolveCb, self.value);
       } else {
-        let temp = onFailure(self.error);
-        if (temp instanceof Promise) {
-          let ans = temp.then(function(val) {
-            reject(val);
-          });
-        } else {
-          reject(temp)
-        }
+        self.rejectWithCbAndValue(reject, rejectCb, self.value);
       }
     });
   }
-}
-
-
-// class Promise {
-//   constructor (exec) {
-//     this.state = 'pending';
-//     this.resolveCbs = [];
-//     this.rejectCbs = [];
-//     exec(this.resolve.bind(this), this.reject.bind(this));
-//   }
-//   then (resolveCb, rejectCb) {
-//     const self = this;
-//     return new Promise(function (resolve, reject) {
-//       if (self.state === 'pending') {
-//         self.resolveCbs.push(function (value) {
-//           self.resolveWithCbAndValue(resolve, resolveCb, value);
-//         });
-//         self.rejectCbs.push(function (value) {
-//           self.rejectWithCbAndValue(reject, rejectCb, value);
-//         });
-//       } else if (self.state === 'resolved') {
-//         self.resolveWithCbAndValue(resolve, resolveCb, self.value);
-//       } else {
-//         self.rejectWithCbAndValue(reject, rejectCb, self.value);
-//       }
-//     });
-//   }
-//   catch (rejectCb) {
-//     const self = this;
-//     return new Promise(function (resolve, reject) {
-//       if (self.state === 'pending') {
-//         self.resolveCbs.push(resolve);
-//         self.rejectCbs.push(function (value) {
-//           self.rejectWithCbAndValue(reject, rejectCb, value);
-//         });
-//       } else if (self.state === 'resolved') {
-//         resolve(self.value);
-//       } else {
-//         self.rejectWithCbAndValue(reject, rejectCb, self.value);
-//       }
-//     });
-//   }
-//   resolve (value) {
-//     this.value = value;
-//     this.state = 'resolved';
-//
-//     // invoke all callbacks
-//     this.resolveCbs.forEach(cb => cb(this.value));
-//     this.resolveCbs = [];
-//     this.rejectCbs = [];
-//   }
-//   reject (value) {
-//     this.value = value;
-//     this.state = 'rejected';
-//
-//     // invoke all callbacks
-//     this.rejectCbs.forEach(cb => cb(this.value));
-//     this.resolveCbs = [];
-//     this.rejectCbs = [];
-//   }
-//   resolveWithCbAndValue (resolve, cb, value) {
-//     // invoke cb if there is one
-//     const result = cb ? cb(value) : value;
-//
-//     // resolve to result or Promise's resolved value
-//     if (result instanceof Promise) {
-//       result.then(function (newValue) {
-//         resolve(newValue);
-//       });
-//     } else {
-//       resolve(result);
-//     }
-//   }
-//   rejectWithCbAndValue (reject, cb, value) {
-//     // invoke cb if there is one
-//     const result = cb ? cb(value) : value;
-//
-//     // reject to result or Promise's rejected value
-//     if (result instanceof Promise) {
-//       result.then(null, function (newValue) {
-//         reject(newValue);
-//       });
-//     } else {
-//       reject(result);
-//     }
-//   }
-// }
-
-const throwDice = function(resolve, reject) {
-  setTimeout(
-    function(){
-      let [d1, d2] = [~~(1 + Math.random() * 6), ~~(1 + Math.random() * 6)];
-      if((d1 + d2) === 7 || (d1 + d2) === 11){resolve(d1 + d2);}
-      else{reject(d1 + d2);}
-    }, 100);
-};
-
-const success = (value) => {
-  console.log('Second')
-  console.log(value);
-  console.log('YOU WIN!!');
-};
-
-const failure = (value) => {
-  console.log('Second')
-  console.log(value);
-  console.log('YOU LOSE!!');
-};
-
-const rethrow = (value) => {
-  console.log(`threw a ${value} throwing again`);
-  return duck();
-};
-
-// console.log('First');
-// function duck() {
-//   new Promise(throwDice).then(success, rethrow).then(success, failure);
-// };
-// duck();
-
-
-// function dieToss() {
-//   return Math.floor(Math.random() * 6) + 1;
-// }
-//
-// function tossASix() {
-//   return new RSVP.Promise(function(fulfill, reject) {
-//     var n = Math.floor(Math.random() * 6) + 1;
-//     if (n === 6) {
-//       fulfill(n);
-//     } else {
-//       reject(n);
-//     }
-//   });
-// }
-//
-// function logAndTossAgain(toss) {
-//   console.log("Tossed a " + toss + ", need to try again.");
-//   return tossASix();
-// }
-//
-// function logSuccess(toss) {
-//   console.log("Yay, managed to toss a " + toss + ".");
-// }
-//
-// function logFailure(toss) {
-//   console.log("Tossed a " + toss + ". Too bad, couldn't roll a six");
-// }
-//
-// tossASix()
-//   .then(null, logAndTossAgain)   //Roll first time
-//   .then(null, logAndTossAgain)   //Roll second time
-//   .then(logSuccess, logFailure); //Roll third and last time
-
-function whatever() {
-  return new RSVP.Promise(function(fulfill, reject) {
-    var n = Math.floor(Math.random() * 6) + 1;
-      if (n === 6) {
-        fulfill(n);
+  catch (rejectCb) {
+    const self = this;
+    return new Promise(function (resolve, reject) {
+      if (self.state === 'pending') {
+        self.resolveCbs.push(resolve);
+        self.rejectCbs.push(function (value) {
+          self.rejectWithCbAndValue(reject, rejectCb, value);
+        });
+      } else if (self.state === 'resolved') {
+        resolve(self.value);
       } else {
-        reject(n);
+        self.rejectWithCbAndValue(reject, rejectCb, self.value);
       }
-  })
+    });
+  }
+  resolve (value) {
+    this.value = value;
+    this.state = 'resolved';
+
+    // invoke all callbacks
+    this.resolveCbs.forEach(cb => cb(this.value));
+    this.resolveCbs = [];
+    this.rejectCbs = [];
+  }
+  reject (value) {
+    this.value = value;
+    this.state = 'rejected';
+
+    // invoke all callbacks
+    this.rejectCbs.forEach(cb => cb(this.value));
+    this.resolveCbs = [];
+    this.rejectCbs = [];
+  }
+  resolveWithCbAndValue (resolve, cb, value) {
+    // invoke cb if there is one
+    const result = cb ? cb(value) : value;
+
+    // resolve to result or Promise's resolved value
+    if (result instanceof Promise) {
+      result.then(function (newValue) {
+        resolve(newValue);
+      });
+    } else {
+      resolve(result);
+    }
+  }
+  rejectWithCbAndValue (reject, cb, value) {
+    // invoke cb if there is one
+    const result = cb ? cb(value) : value;
+
+    // reject to result or Promise's rejected value
+    if (result instanceof Promise) {
+      result.then(null, function (newValue) {
+        reject(newValue);
+      });
+    } else {
+      reject(result);
+    }
+  }
 }
+
+
+
+
+function dieToss() {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+function tossASix() {
+  return new Promise(function(resolve, reject) {
+    var n = Math.floor(Math.random() * 6) + 1;
+    if (n === 6) {
+      resolve(n);
+    } else {
+      reject(n);
+    }
+  });
+}
+
 function logAndTossAgain(toss) {
   console.log("Tossed a " + toss + ", need to try again.");
-  return whatever();
+  return tossASix();
 }
 
 function logSuccess(toss) {
@@ -818,7 +760,89 @@ function logFailure(toss) {
   console.log("Tossed a " + toss + ". Too bad, couldn't roll a six");
 }
 
-whatever()
+tossASix()
   .then(null, logAndTossAgain)   //Roll first time
   .then(null, logAndTossAgain)   //Roll second time
   .then(logSuccess, logFailure); //Roll third and last time
+
+// function whatever() {
+//   return new RSVP.Promise(function(fulfill, reject) {
+//     var n = Math.floor(Math.random() * 6) + 1;
+//       if (n === 6) {
+//         fulfill(n);
+//       } else {
+//         reject(n);
+//       }
+//   })
+// }
+// function logAndTossAgain(toss) {
+//   console.log("Tossed a " + toss + ", need to try again.");
+//   return whatever();
+// }
+//
+// function logSuccess(toss) {
+//   console.log("Yay, managed to toss a " + toss + ".");
+// }
+//
+// function logFailure(toss) {
+//   console.log("Tossed a " + toss + ". Too bad, couldn't roll a six");
+// }
+//
+// whatever()
+//   .then(null, logAndTossAgain)   //Roll first time
+//   .then(null, logAndTossAgain)   //Roll second time
+//   .then(logSuccess, logFailure); //Roll third and last time
+//
+
+// class SimplePromise {
+//   constructor(executor) {
+//     this.state = "Pending";
+//     executor(this.resolve.bind(this), this.reject.bind(this))
+//   }
+//   resolve(resp) {
+//     this.state = "Fulfilled";
+//     this.val = resp;
+//     return this.onSuccess(this.val);
+//   }
+//   reject(resp) {
+//     this.state = "Rejected";
+//     this.error = resp;
+//     return this.onFailure(this.error);
+//   }
+//   then(onSuccess, onFailure) {
+//     this.onSuccess = onSuccess;
+//     this.onFailure = onFailure;
+//   }
+// }
+//
+// const throwDice = function(resolve, reject) {
+//   setTimeout(
+//     function(){
+//       let [d1, d2] = [~~(1 + Math.random() * 6), ~~(1 + Math.random() * 6)];
+//       if((d1 + d2) === 7 || (d1 + d2) === 11){resolve(d1 + d2);}
+//       else{reject(d1 + d2);}
+//     }, 100);
+// };
+//
+// const success = (value) => {
+//   console.log('Second')
+//   console.log(value);
+//   console.log('YOU WIN!!');
+// };
+//
+// const failure = (value) => {
+//   console.log('Second')
+//   console.log(value);
+//   console.log('YOU LOSE!!');
+// };
+//
+// const rethrow = (value) => {
+//   console.log(`threw a ${value} throwing again`);
+//   return duck();
+// };
+//
+// console.log('First');
+// function duck() {
+//   new SimplePromise(throwDice).then(success, rethrow)
+// };
+// duck();
